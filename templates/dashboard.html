@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Space Quant — Backtest Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    <script src="https://cdn.plot.ly/plotly-2.35.0.min.js"></script>
+</head>
+<body>
+
+<!-- ---- Top Navigation ---- -->
+<nav class="top-nav">
+    <span class="brand">Space Quant</span>
+
+    <select id="algo-select" title="Select algorithm">
+        <option value="">— Choose Algorithm —</option>
+    </select>
+    <button class="primary" id="run-btn" title="Run Backtest">Run Backtest</button>
+
+    <span class="spacer"></span>
+
+    <select id="result-select" title="View results">
+        <option value="">— View Results —</option>
+    </select>
+    <button id="load-btn">Load Results</button>
+
+    <span class="status-text" id="status-text"></span>
+</nav>
+
+<!-- ---- Metrics Bar ---- -->
+<div class="metrics-bar" id="metrics-bar">
+    <div class="metric"><div class="value" id="m-psr">—</div><div class="label">PSR</div></div>
+    <div class="metric"><div class="value" id="m-unrealized">—</div><div class="label">Unrealized</div></div>
+    <div class="metric"><div class="value" id="m-fees">—</div><div class="label">Fees</div></div>
+    <div class="metric"><div class="value" id="m-net-profit">—</div><div class="label">Net Profit</div></div>
+    <div class="metric"><div class="value" id="m-return">—</div><div class="label">Return</div></div>
+    <div class="metric"><div class="value" id="m-equity">—</div><div class="label">Equity</div></div>
+    <div class="metric"><div class="value" id="m-holdings">—</div><div class="label">Holdings</div></div>
+    <div class="metric"><div class="value" id="m-volume">—</div><div class="label">Volume</div></div>
+    <div class="metric"><div class="value" id="m-capacity">—</div><div class="label">Capacity</div></div>
+</div>
+
+<!-- ---- Tab Bar ---- -->
+<div class="tab-bar">
+    <div class="tab active" data-tab="overview">Overview</div>
+    <div class="tab" data-tab="orders">Orders</div>
+    <div class="tab" data-tab="logs">Logs</div>
+</div>
+
+<!-- ================================================================ -->
+<!-- TAB: Overview                                                     -->
+<!-- ================================================================ -->
+<div class="tab-content active" id="tab-overview">
+
+    <!-- Chart Controls -->
+    <div class="chart-panel">
+        <div class="chart-controls">
+            <label>
+                <input type="checkbox" id="toggle-equity" checked> Equity
+            </label>
+            <label>
+                <input type="checkbox" id="toggle-daily-perf" checked> Daily Performance
+            </label>
+            <label>
+                <input type="checkbox" id="toggle-benchmark"> Benchmark
+            </label>
+            <label>
+                <input type="checkbox" id="toggle-sma"> SMA Overlay
+            </label>
+            <div class="range-btns">
+                <button class="range-btn" data-range="1m">1m</button>
+                <button class="range-btn" data-range="3m">3m</button>
+                <button class="range-btn" data-range="1y">1y</button>
+                <button class="range-btn active" data-range="all">All</button>
+            </div>
+        </div>
+
+        <!-- Plotly Charts -->
+        <div id="equity-chart"></div>
+        <div id="daily-perf-chart"></div>
+    </div>
+
+    <!-- Overall Statistics -->
+    <div class="stats-section">
+        <h3>Overall Statistics</h3>
+        <div class="stats-grid" id="stats-grid">
+            <!-- Filled by JS -->
+        </div>
+    </div>
+
+    <!-- Rolling Statistics placeholder -->
+    <div class="rolling-section">
+        <div class="rolling-header">
+            <h3>Rolling Statistics</h3>
+            <select id="rolling-metric">
+                <option value="sharpe">Sharpe Ratio</option>
+            </select>
+        </div>
+    </div>
+</div>
+
+<!-- ================================================================ -->
+<!-- TAB: Orders                                                       -->
+<!-- ================================================================ -->
+<div class="tab-content" id="tab-orders">
+    <div class="orders-section">
+        <table class="orders-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Time</th>
+                    <th>Symbol</th>
+                    <th>Type</th>
+                    <th>Direction</th>
+                    <th>Quantity</th>
+                    <th>Price</th>
+                    <th>Value</th>
+                    <th>Status</th>
+                    <th>Tag</th>
+                </tr>
+            </thead>
+            <tbody id="orders-body">
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ================================================================ -->
+<!-- TAB: Logs                                                         -->
+<!-- ================================================================ -->
+<div class="tab-content" id="tab-logs">
+    <div class="logs-section">
+        <div class="log-output" id="log-output">No logs loaded.</div>
+    </div>
+</div>
+
+<!-- ---- Empty State (shown when nothing is loaded) ---- -->
+<div class="empty-state" id="empty-state" style="display:none;">
+    <h2>No Results Loaded</h2>
+    <p>Select a result set from the dropdown or run a backtest to get started.</p>
+</div>
+
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+</body>
+</html>

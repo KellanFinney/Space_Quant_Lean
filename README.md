@@ -48,12 +48,19 @@ The first completed algorithm (`RKLBSwingStrategy`) is a long-only swing trading
 
 ```
 Space_Quant_Lean/
+├── app.py                         # Flask dashboard server
+├── templates/
+│   └── dashboard.html             # Interactive dashboard UI
+├── static/
+│   ├── css/dashboard.css          # Dark theme styles
+│   └── js/dashboard.js            # Plotly charts + interactivity
 ├── Algorithms/
 │   ├── space_strategy/
 │   │   └── rklb_swing.py          # RKLB swing trading algorithm
-│   └── lesson9.py                 # Introductory LEAN algorithm
+│   ├── lesson9.py                 # TSLA sentiment algorithm
+│   └── lesson10.py                # SPY/BND SMA rotation algorithm
 ├── scripts/
-│   ├── advanced_dashboard.py      # HTML backtest analysis dashboard
+│   ├── advanced_dashboard.py      # Static HTML analysis dashboard
 │   ├── visualize_results.py       # Basic results visualization
 │   ├── download_rklb_data.py      # Yahoo Finance → LEAN format converter
 │   └── download_data.py           # General data download utilities
@@ -97,30 +104,43 @@ Space_Quant_Lean/
    docker build -t lean-custom .
    ```
 
-## Running a Backtest
+## Running the Dashboard
 
-Run the RKLB swing strategy against historical data:
+The interactive dashboard is a Flask app that can view results and launch backtests from the browser.
+
+```bash
+source venv/bin/activate
+python app.py
+# Open http://localhost:5000
+```
+
+From the dashboard you can:
+- Select any algorithm under `Algorithms/` and click **Run Backtest** to execute it via Docker
+- Load any previous result set to view equity curves, daily performance, benchmark/SMA overlays, statistics, orders, and logs
+- Toggle overlays (Benchmark, SMA) and switch time ranges (1m, 3m, 1y, All)
+
+## Running a Backtest (CLI)
+
+You can also run backtests directly from the command line:
 
 ```bash
 docker run --rm \
   -v $(pwd)/Algorithms:/Lean/Algorithm \
   -v $(pwd)/Data:/Lean/Data \
   -v $(pwd)/Results:/Results \
-  -v $(pwd)/config.json:/Lean/Launcher/config.json \
+  -v $(pwd)/config.json:/Lean/Launcher/bin/Debug/config.json \
   lean-custom
 ```
 
-Results are written to `Results/space_strategy/`.
+Results are written to `Results/<strategy>/`.
 
-## Analyzing Results
+## Static Analysis Dashboard
 
-Generate an interactive HTML dashboard from backtest output:
+For the RKLB strategy specifically, a detailed static HTML dashboard is also available:
 
 ```bash
 python scripts/advanced_dashboard.py space_strategy
 ```
-
-The dashboard includes equity curves, drawdown charts, signal effectiveness breakdowns, launch event impact analysis, monthly return heatmaps, and a full trade-by-trade table.
 
 ## Roadmap
 
