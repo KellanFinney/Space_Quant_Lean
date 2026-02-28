@@ -9,8 +9,8 @@ Strategies are being developed for publicly traded space companies including:
 | Ticker | Company | Focus |
 |--------|---------|-------|
 | **RKLB** | Rocket Lab | Launch events + swing trading |
-| LUNR | Intuitive Machines | *Planned* |
-| ASTS | AST SpaceMobile | *Planned* |
+| **LUNR** | Intuitive Machines | Lunar missions + NASA contracts |
+| **ASTS** | AST SpaceMobile | Satellite launches + MNO partnerships |
 | PL | Planet Labs | *Planned* |
 | BKSY | BlackSky Technology | *Planned* |
 | RDW | Redwire | *Planned* |
@@ -20,29 +20,28 @@ Strategies are being developed for publicly traded space companies including:
 | LMT | Lockheed Martin (space) | *Planned* |
 | NOC | Northrop Grumman (space) | *Planned* |
 
-## Current Strategy: RKLB Swing
+## Strategies
 
-The first completed algorithm (`RKLBSwingStrategy`) is a long-only swing trading strategy. It scores each trading day on a 0–7 composite signal and enters a position when the score reaches 3 or above.
+All strategies share the same architecture: 5 core technical indicators + company-specific event catalysts scored into a composite signal. A position is entered when the score reaches 3+.
 
-### Signal Components
+### RKLB — Rocket Lab (7 signals)
 
-| # | Signal | Source |
-|---|--------|--------|
-| 1 | RSI oversold recovery (30–45 range) | Technical |
-| 2 | MACD bullish crossover | Technical |
-| 3 | SMA golden cross (20-day > 50-day) | Technical |
-| 4 | Price above 20-day SMA | Technical |
-| 5 | Price near Bollinger lower band | Technical |
-| 6 | Upcoming launch (1–5 days out) | Event |
-| 7 | Post-successful-launch momentum (≤3 days) | Event |
+Swing trades around Electron rocket launches. Buys pre-launch hype (1–5 days out) and post-successful-launch momentum. Stop loss 5%, take profit 10%. Backtest: Sep 2021 – Mar 2025.
 
-### Risk Management
+### LUNR — Intuitive Machines (8 signals)
 
-- **Stop loss:** 5%
-- **Take profit:** 10%
+Swing trades around lunar mission milestones. Catalysts include IM-1/IM-2/IM-3 launches, lunar landings (huge volume events), and NASA CLPS contract awards. Wider stop loss at 7% due to higher volatility. Backtest: Mar 2023 – Jun 2025.
+
+### ASTS — AST SpaceMobile (9 signals)
+
+Swing trades around satellite deployment milestones. Catalysts include BlueBird satellite launches, MNO partnership announcements (AT&T, Vodafone, Google), FCC regulatory approvals, and technology firsts (first 5G from space). Widest stop at 8% for this high-beta name. Backtest: May 2021 – Jun 2025.
+
+### Shared Risk Management
+
 - **Trailing stop:** tightens to 3% floor once position is up 5%+
 - **Time stop:** max 10 trading days per position
 - **Max 5 trades/week**, max 1 open position at a time
+- **95% of cash** per position (concentrated, small account)
 
 ## Project Structure
 
@@ -56,7 +55,9 @@ Space_Quant_Lean/
 │   └── js/dashboard.js            # Plotly charts + interactivity
 ├── Algorithms/
 │   ├── space_strategy/
-│   │   └── rklb_swing.py          # RKLB swing trading algorithm
+│   │   ├── rklb_swing.py          # RKLB swing trading algorithm
+│   │   ├── lunr_swing.py          # LUNR swing trading algorithm
+│   │   └── asts_swing.py          # ASTS swing trading algorithm
 │   ├── lesson9.py                 # TSLA sentiment algorithm
 │   └── lesson10.py                # SPY/BND SMA rotation algorithm
 ├── scripts/
@@ -144,10 +145,12 @@ python scripts/advanced_dashboard.py space_strategy
 
 ## Roadmap
 
-- [ ] RKLB swing strategy (complete)
+- [x] RKLB swing strategy
+- [x] LUNR swing strategy
+- [x] ASTS swing strategy
+- [x] Auto data pipeline (ticker detection + download)
+- [x] Interactive Flask dashboard
 - [ ] Multi-ticker data pipeline for all space equities
-- [ ] LUNR strategy — lunar mission contract catalysts
-- [ ] ASTS strategy — satellite deployment milestones
 - [ ] Sector-wide correlation / pairs trading
 - [ ] NLP sentiment layer (earnings calls, launch press, social media)
 - [ ] Portfolio-level strategy combining individual alpha signals
