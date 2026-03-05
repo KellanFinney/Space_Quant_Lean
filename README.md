@@ -11,8 +11,8 @@ Strategies are being developed for publicly traded space companies including:
 | **RKLB** | Rocket Lab | Launch events + swing trading |
 | **LUNR** | Intuitive Machines | Lunar missions + NASA contracts |
 | **ASTS** | AST SpaceMobile | Satellite launches + MNO partnerships |
-| PL | Planet Labs | *Planned* |
-| BKSY | BlackSky Technology | *Planned* |
+| **PL** | Planet Labs | Satellite launches + gov contracts |
+| **BKSY** | BlackSky Technology | Gen-3 launches + defense contracts |
 | RDW | Redwire | *Planned* |
 | MNTS | Momentus | *Planned* |
 | SPCE | Virgin Galactic | *Planned* |
@@ -35,6 +35,14 @@ Swing trades around lunar mission milestones. Catalysts include IM-1/IM-2/IM-3 l
 ### ASTS — AST SpaceMobile (9 signals)
 
 Swing trades around satellite deployment milestones. Catalysts include BlueBird satellite launches, MNO partnership announcements (AT&T, Vodafone, Google), FCC regulatory approvals, and technology firsts (first 5G from space). Widest stop at 8% for this high-beta name. Backtest: May 2021 – Jun 2025.
+
+### PL — Planet Labs (8 signals)
+
+Swing trades around Pelican/SuperDove satellite launches and government contract awards. Catalysts include NGA Luno B and NRO EOCL contract awards, large commercial Pelican deals, and earnings beats on revenue growth. Stop loss 6%, take profit 12%. Backtest: Feb 2022 – Jun 2025.
+
+### BKSY — BlackSky Technology (8 signals)
+
+Swing trades around Gen-2/Gen-3 satellite launches on Rocket Lab Electron and defense contract awards. Catalysts include NGA Luno B ($200M ceiling), multi-year international subscription contracts, Gen-3 first light milestones, and backlog growth. Stop loss 7%, take profit 13%. Backtest: Oct 2021 – Jun 2025.
 
 ### Shared Risk Management
 
@@ -148,6 +156,8 @@ python scripts/advanced_dashboard.py space_strategy
 - [x] RKLB swing strategy
 - [x] LUNR swing strategy
 - [x] ASTS swing strategy
+- [x] PL swing strategy
+- [x] BKSY swing strategy
 - [x] Auto data pipeline (ticker detection + download)
 - [x] Interactive Flask dashboard
 - [ ] Multi-ticker data pipeline for all space equities

@@ -59,18 +59,17 @@ def list_algorithms():
 
 @app.route("/api/results")
 def list_results():
-    """Return folders inside Results/ that contain a *-summary.json."""
+    """Return folders inside Results/ that contain a *-summary.json (recursive)."""
     result_sets = []
     if RESULTS_DIR.exists():
-        for folder in sorted(RESULTS_DIR.iterdir()):
-            if folder.is_dir():
-                summaries = list(folder.glob("*-summary.json"))
-                if summaries:
-                    algo_name = summaries[0].stem.replace("-summary", "")
-                    result_sets.append({
-                        "folder": folder.name,
-                        "algorithm": algo_name,
-                    })
+        for summary_file in sorted(RESULTS_DIR.rglob("*-summary.json")):
+            folder = summary_file.parent
+            rel_folder = folder.relative_to(RESULTS_DIR)
+            algo_name = summary_file.stem.replace("-summary", "")
+            result_sets.append({
+                "folder": str(rel_folder),
+                "algorithm": algo_name,
+            })
     return jsonify(result_sets)
 
 
@@ -85,11 +84,18 @@ def get_results(strategy):
     if not results_dir.exists():
         return jsonify({"error": f"Results folder '{strategy}' not found"}), 404
 
-    summaries = list(results_dir.glob("*-summary.json"))
-    if not summaries:
-        return jsonify({"error": "No summary JSON found"}), 404
-
-    algo_name = summaries[0].stem.replace("-summary", "")
+    requested_algo = request.args.get("algo")
+    if requested_algo:
+        summary_path = results_dir / f"{requested_algo}-summary.json"
+        if summary_path.exists():
+            algo_name = requested_algo
+        else:
+            return jsonify({"error": f"No results for '{requested_algo}' in '{strategy}'"}), 404
+    else:
+        summaries = list(results_dir.glob("*-summary.json"))
+        if not summaries:
+            return jsonify({"error": "No summary JSON found"}), 404
+        algo_name = summaries[0].stem.replace("-summary", "")
 
     data = {"algorithm": algo_name, "strategy": strategy}
 
@@ -152,9 +158,13 @@ def run_backtest():
     job_id = str(uuid.uuid4())[:8]
 
     # Determine output folder name and class name
-    algo_dir = str(Path(algo_path).parent) if str(Path(algo_path).parent) != "." else Path(algo_path).stem
+    algo_dir = str(Path(algo_path).parent)
+    algo_stem = Path(algo_path).stem
     class_name = _detect_class_name(full_algo)
-    result_folder = algo_dir if algo_dir != "." else Path(algo_path).stem
+    if algo_dir and algo_dir != ".":
+        result_folder = f"{algo_dir}/{algo_stem}"
+    else:
+        result_folder = algo_stem
 
     # Build a config for this run
     run_config = _build_config(algo_path, class_name, result_folder)
@@ -162,6 +172,7 @@ def run_backtest():
     backtest_jobs[job_id] = {
         "status": "running",
         "algorithm": algo_path,
+        "algorithm_class": class_name,
         "result_folder": result_folder,
         "log": "",
         "started": datetime.now().isoformat(),

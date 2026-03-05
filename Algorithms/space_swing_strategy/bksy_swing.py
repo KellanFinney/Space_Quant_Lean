@@ -1,52 +1,52 @@
 from AlgorithmImports import *
 
 
-class PLSwingStrategy(QCAlgorithm):
+class BKSYSwingStrategy(QCAlgorithm):
     """
-    Planet Labs (PL) Swing Trading Strategy
+    BlackSky Technology (BKSY) Swing Trading Strategy
 
     Signals:
     1. Technical: RSI, MACD, SMA crossover (20/50), Bollinger Bands
-    2. Event-driven: Satellite launches (Pelican/SuperDove), gov contracts, earnings
+    2. Event-driven: Gen-2/Gen-3 satellite launches, defense contracts, earnings
     3. Position sizing: $1,000 account, long-only, 1-5 trades/week
 
-    PL catalysts:
-    - Pelican high-res satellite launches validate next-gen constellation
-    - SuperDove flock launches expand daily imaging coverage
-    - Government contracts (NGA Luno B, NRO EOCL) signal defense revenue
-    - Large commercial deals ($230M Pelican agreement) prove enterprise TAM
-    - Earnings beats on revenue growth and margin improvement
+    BKSY catalysts:
+    - Gen-3 VHR satellite launches on Rocket Lab Electron (35cm resolution)
+    - NGA Luno B contract ($200M ceiling) and international defense deals
+    - Multi-year subscription contracts signal recurring revenue
+    - Earnings beats on backlog growth ($322M+ backlog)
+    - Rocket Lab partnership expansions (17+ launches together)
 
     Rules:
     - Long only (no shorting)
     - Max 1 position at a time
-    - Stop loss 6%
-    - Take profit 12%
+    - Stop loss 7% (small-cap geospatial, moderate volatility)
+    - Take profit 13%
     - Hold 1-10 days (swing trade)
     """
 
     def Initialize(self):
-        self.set_start_date(2022, 2, 1)
+        self.set_start_date(2021, 10, 1)
         self.set_end_date(2025, 6, 30)
         self.set_cash(1000)
 
         self.SetWarmUp(timedelta(days=60))
 
-        self.pl = self.add_equity("PL", Resolution.Daily).Symbol
-        self.event_data = self.add_data(PLEvent, "PLEVENTS", Resolution.Daily).Symbol
+        self.bksy = self.add_equity("BKSY", Resolution.Daily).Symbol
+        self.event_data = self.add_data(BKSYEvent, "BKSYEVENTS", Resolution.Daily).Symbol
 
         # ---- Technical Indicators ----
-        self.rsi = self.RSI(self.pl, 14, MovingAverageType.Wilders, Resolution.Daily)
-        self.macd = self.MACD(self.pl, 12, 26, 9, MovingAverageType.Exponential, Resolution.Daily)
-        self.sma_fast = self.SMA(self.pl, 20, Resolution.Daily)
-        self.sma_slow = self.SMA(self.pl, 50, Resolution.Daily)
-        self.bb = self.BB(self.pl, 20, 2, MovingAverageType.Simple, Resolution.Daily)
+        self.rsi = self.RSI(self.bksy, 14, MovingAverageType.Wilders, Resolution.Daily)
+        self.macd = self.MACD(self.bksy, 12, 26, 9, MovingAverageType.Exponential, Resolution.Daily)
+        self.sma_fast = self.SMA(self.bksy, 20, Resolution.Daily)
+        self.sma_slow = self.SMA(self.bksy, 50, Resolution.Daily)
+        self.bb = self.BB(self.bksy, 20, 2, MovingAverageType.Simple, Resolution.Daily)
 
         # ---- Trade Management ----
         self.entry_price = 0
         self.entry_date = None
-        self.stop_loss_pct = 0.06
-        self.take_profit_pct = 0.12
+        self.stop_loss_pct = 0.07
+        self.take_profit_pct = 0.13
         self.max_hold_days = 10
         self.trades_this_week = 0
         self.last_week = -1
@@ -71,19 +71,19 @@ class PLSwingStrategy(QCAlgorithm):
             self.days_since_event = 0
             self.last_event_outcome = event["Outcome"]
             self.last_event_type = event["Type"]
-            self.Log(f"PL EVENT: {event['Event']} ({event['Type']}) - {self.last_event_outcome}")
+            self.Log(f"BKSY EVENT: {event['Event']} ({event['Type']}) - {self.last_event_outcome}")
 
         if self.days_since_event < 999:
             self.days_since_event += 1
 
-        if self.pl not in data or data[self.pl] is None:
+        if self.bksy not in data or data[self.bksy] is None:
             return
 
-        price = self.Securities[self.pl].Price
+        price = self.Securities[self.bksy].Price
         if price <= 0:
             return
 
-        if self.Portfolio[self.pl].Invested:
+        if self.Portfolio[self.bksy].Invested:
             self.ManagePosition(price)
             return
 
@@ -100,11 +100,11 @@ class PLSwingStrategy(QCAlgorithm):
             shares = int(available_cash / price)
 
             if shares > 0:
-                self.MarketOrder(self.pl, shares)
+                self.MarketOrder(self.bksy, shares)
                 self.entry_price = price
                 self.entry_date = self.Time
                 self.trades_this_week += 1
-                self.Log(f"BUY {shares} PL @ ${price:.2f} | Signal: {signal_score} | RSI: {self.rsi.Current.Value:.1f} | MACD: {self.macd.Current.Value:.4f}")
+                self.Log(f"BUY {shares} BKSY @ ${price:.2f} | Signal: {signal_score} | RSI: {self.rsi.Current.Value:.1f} | MACD: {self.macd.Current.Value:.4f}")
 
     def CalculateSignalScore(self, price):
         """
@@ -145,20 +145,20 @@ class PLSwingStrategy(QCAlgorithm):
             score += 1
             reasons.append("Near Bollinger lower band")
 
-        # 6. Post-satellite-launch momentum (Pelican or SuperDove flock)
+        # 6. Post-satellite-launch momentum (Gen-2 or Gen-3 on Electron)
         if self.days_since_event <= 5 and self.last_event_type == "Launch" and self.last_event_outcome == "Success":
             score += 1
             reasons.append(f"Post-launch momentum ({self.days_since_event}d ago)")
 
-        # 7. Government contract award (NGA, NRO, DoD)
+        # 7. Defense/intel contract award (NGA, DIA, international)
         if self.days_since_event <= 3 and self.last_event_type == "Contract" and self.last_event_outcome == "Success":
             score += 1
             reasons.append(f"Contract catalyst ({self.days_since_event}d ago)")
 
-        # 8. Earnings momentum
-        if self.days_since_event <= 2 and self.last_event_type == "Earnings" and self.last_event_outcome == "Success":
+        # 8. Technology milestone (Gen-3 first light, constellation expansion)
+        if self.days_since_event <= 3 and self.last_event_type == "Milestone" and self.last_event_outcome == "Success":
             score += 1
-            reasons.append(f"Earnings catalyst ({self.days_since_event}d ago)")
+            reasons.append(f"Tech milestone ({self.days_since_event}d ago)")
 
         if score >= 3:
             self.Log(f"SIGNAL SCORE: {score}/8 | {' | '.join(reasons)}")
@@ -173,28 +173,28 @@ class PLSwingStrategy(QCAlgorithm):
         days_held = (self.Time - self.entry_date).days if self.entry_date else 0
 
         if pnl_pct <= -self.stop_loss_pct:
-            self.Liquidate(self.pl)
-            self.Log(f"STOP LOSS: Sold PL @ ${price:.2f} | P&L: {pnl_pct*100:.1f}% | Held {days_held} days")
+            self.Liquidate(self.bksy)
+            self.Log(f"STOP LOSS: Sold BKSY @ ${price:.2f} | P&L: {pnl_pct*100:.1f}% | Held {days_held} days")
             self.ResetPosition()
             return
 
         if pnl_pct >= self.take_profit_pct:
-            self.Liquidate(self.pl)
-            self.Log(f"TAKE PROFIT: Sold PL @ ${price:.2f} | P&L: {pnl_pct*100:.1f}% | Held {days_held} days")
+            self.Liquidate(self.bksy)
+            self.Log(f"TAKE PROFIT: Sold BKSY @ ${price:.2f} | P&L: {pnl_pct*100:.1f}% | Held {days_held} days")
             self.ResetPosition()
             return
 
         if days_held >= self.max_hold_days:
-            self.Liquidate(self.pl)
-            self.Log(f"TIME STOP: Sold PL @ ${price:.2f} | P&L: {pnl_pct*100:.1f}% | Held {days_held} days")
+            self.Liquidate(self.bksy)
+            self.Log(f"TIME STOP: Sold BKSY @ ${price:.2f} | P&L: {pnl_pct*100:.1f}% | Held {days_held} days")
             self.ResetPosition()
             return
 
         if pnl_pct > 0.05:
             trailing_stop = self.entry_price * 1.03
             if price <= trailing_stop:
-                self.Liquidate(self.pl)
-                self.Log(f"TRAILING STOP: Sold PL @ ${price:.2f} | P&L: {pnl_pct*100:.1f}% | Held {days_held} days")
+                self.Liquidate(self.bksy)
+                self.Log(f"TRAILING STOP: Sold BKSY @ ${price:.2f} | P&L: {pnl_pct*100:.1f}% | Held {days_held} days")
                 self.ResetPosition()
                 return
 
@@ -208,14 +208,14 @@ class PLSwingStrategy(QCAlgorithm):
             self.Log("END OF BACKTEST - Liquidating all positions")
 
 
-class PLEvent(PythonData):
+class BKSYEvent(PythonData):
     """
-    Custom data source: Planet Labs satellite launch/contract/earnings events.
+    Custom data source: BlackSky satellite launch/contract/milestone events.
     """
 
     def GetSource(self, config, date, isLive):
         return SubscriptionDataSource(
-            "/Lean/Data/custom/pl_milestones.csv",
+            "/Lean/Data/custom/bksy_milestones.csv",
             SubscriptionTransportMedium.LocalFile
         )
 
@@ -227,7 +227,7 @@ class PLEvent(PythonData):
         if len(parts) < 4:
             return None
 
-        entry = PLEvent()
+        entry = BKSYEvent()
 
         try:
             event_date = datetime.strptime(parts[0].strip(), "%Y-%m-%d")

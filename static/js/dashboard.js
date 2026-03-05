@@ -58,7 +58,8 @@ async function fetchResultSets() {
         sets.forEach(s => {
             const opt = document.createElement("option");
             opt.value = s.folder;
-            opt.textContent = `${s.folder} (${s.algorithm})`;
+            opt.dataset.algo = s.algorithm;
+            opt.textContent = `${s.algorithm} (${s.folder})`;
             resultSelect.appendChild(opt);
         });
     } catch (e) {
@@ -66,10 +67,12 @@ async function fetchResultSets() {
     }
 }
 
-async function loadResults(strategy) {
+async function loadResults(strategy, algo) {
     statusText.textContent = "Loading...";
     try {
-        const res = await fetch(`/api/results/${strategy}`);
+        let url = `/api/results/${strategy}`;
+        if (algo) url += `?algo=${encodeURIComponent(algo)}`;
+        const res = await fetch(url);
         if (!res.ok) throw new Error(await res.text());
         currentData = await res.json();
         statusText.textContent = `Loaded: ${currentData.algorithm}`;
@@ -81,8 +84,9 @@ async function loadResults(strategy) {
 }
 
 function loadSelectedResult() {
-    const val = resultSelect.value;
-    if (val) loadResults(val);
+    const opt = resultSelect.selectedOptions[0];
+    if (!opt || !opt.value) return;
+    loadResults(opt.value, opt.dataset.algo);
 }
 
 
@@ -139,8 +143,15 @@ function pollBacktest(jobId) {
                 statusText.textContent = "Backtest complete!";
                 await fetchResultSets();
                 if (job.result_folder) {
-                    resultSelect.value = job.result_folder;
-                    loadResults(job.result_folder);
+                    const algoName = job.algorithm_class || "";
+                    // Select the matching option by folder value
+                    for (const opt of resultSelect.options) {
+                        if (opt.value === job.result_folder) {
+                            opt.selected = true;
+                            break;
+                        }
+                    }
+                    loadResults(job.result_folder, algoName);
                 }
             } else {
                 statusText.textContent = `Backtest ${job.status}.`;
