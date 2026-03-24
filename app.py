@@ -24,6 +24,7 @@ CONFIG_PATH = BASE_DIR / "config.json"
 
 # In-memory store for running backtest jobs
 backtest_jobs = {}
+_jobs_lock = threading.Lock()
 
 
 # ---------------------------------------------------------------------------
@@ -80,7 +81,10 @@ def list_results():
 @app.route("/api/results/<path:strategy>")
 def get_results(strategy):
     """Load and return parsed backtest results for a strategy folder."""
-    results_dir = RESULTS_DIR / strategy
+    results_dir = (RESULTS_DIR / strategy).resolve()
+    # Prevent path traversal outside the Results directory
+    if not str(results_dir).startswith(str(RESULTS_DIR.resolve())):
+        return jsonify({"error": "Invalid strategy path"}), 400
     if not results_dir.exists():
         return jsonify({"error": f"Results folder '{strategy}' not found"}), 404
 
@@ -169,14 +173,15 @@ def run_backtest():
     # Build a config for this run
     run_config = _build_config(algo_path, class_name, result_folder)
 
-    backtest_jobs[job_id] = {
-        "status": "running",
-        "algorithm": algo_path,
-        "algorithm_class": class_name,
-        "result_folder": result_folder,
-        "log": "",
-        "started": datetime.now().isoformat(),
-    }
+    with _jobs_lock:
+        backtest_jobs[job_id] = {
+            "status": "running",
+            "algorithm": algo_path,
+            "algorithm_class": class_name,
+            "result_folder": result_folder,
+            "log": "",
+            "started": datetime.now().isoformat(),
+        }
 
     thread = threading.Thread(
         target=_run_docker_backtest,
@@ -191,7 +196,8 @@ def run_backtest():
 @app.route("/api/backtest-status/<job_id>")
 def backtest_status(job_id):
     """Poll the status of a running backtest."""
-    job = backtest_jobs.get(job_id)
+    with _jobs_lock:
+        job = backtest_jobs.get(job_id)
     if not job:
         return jsonify({"error": "Job not found"}), 404
     return jsonify(job)
@@ -302,6 +308,11 @@ def _detect_class_name(py_path):
     """Parse the .py file to find the QCAlgorithm subclass name."""
     with open(py_path) as f:
         content = f.read()
+    # Prefer an explicit QCAlgorithm subclass
+    match = re.search(r"class\s+(\w+)\s*\(\s*QCAlgorithm\s*\)", content)
+    if match:
+        return match.group(1)
+    # Fall back to the first class definition in the file
     match = re.search(r"class\s+(\w+)\s*\(", content)
     return match.group(1) if match else "MyAlgorithm"
 
@@ -419,7 +430,8 @@ def _build_config(algo_path, class_name, result_folder):
 
 def _run_docker_backtest(job_id, config, result_folder):
     """Execute the LEAN Docker container and capture output."""
-    job = backtest_jobs[job_id]
+    with _jobs_lock:
+        job = backtest_jobs[job_id]
 
     # Auto-download any missing ticker data before running
     algo_file = ALGORITHMS_DIR / job["algorithm"]

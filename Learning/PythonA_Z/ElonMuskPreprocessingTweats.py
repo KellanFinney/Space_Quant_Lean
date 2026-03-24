@@ -40,7 +40,8 @@ print(df.head())
 print(f"\nSample from end:")
 print(df.tail())
 
-# Save to the Data directory
-output_path = "/Users/kfinney89/Documents/QuantConnect/Data/2010_2025muskTweetsPreProcessed.csv"
+# Save to the Data directory (relative to this script's location)
+script_dir = os.path.dirname(os.path.abspath(__file__))
+output_path = os.path.join(script_dir, "2010_2025muskTweetsPreProcessed.csv")
 df.to_csv(output_path, index=False)
 print(f"\nSaved to: {output_path}")
