@@ -130,8 +130,11 @@ Space_Quant_Lean/
 ├── Learning/
 │   └── PythonA_Z/
 │       └── ElonMuskPreprocessingTweats.py  # Musk tweet NLP preprocessing
-├── Dockerfile                         # LEAN engine + NLTK container
-├── requirements.txt                   # Python dependencies
+├── Dockerfile                     # LEAN engine + NLTK container
+├── lean.engine.json               # LEAN engine settings (no strategy hardcoded)
+├── lean_config.py                 # Merge engine + per-run algorithm / benchmark
+├── scripts/run_lean_backtest.py   # CLI: Docker backtest any algorithm
+├── requirements.txt               # Python dependencies
 └── .gitignore
 ```
 
@@ -161,10 +164,11 @@ Space_Quant_Lean/
    python scripts/download_rklb_data.py
    ```
 
-4. **Build the Docker image** (adds NLTK to the LEAN base image)
+4. **Build the Docker image** (NLTK on top of `quantconnect/lean:latest`; tag must match what you run)
    ```bash
    docker build -t lean-nltk .
    ```
+   The Flask dashboard runs this image as `lean-nltk`. If you use another tag, change `app.py` or pass the same tag on the CLI.
 
 ## Running the Dashboard
 
@@ -177,13 +181,20 @@ python app.py
 ```
 
 From the dashboard you can:
-- Select any algorithm under `Algorithms/` and click **Run Backtest** to execute it via Docker
+- Select any algorithm under `Algorithms/` and click **Run Backtest** to execute it via Docker (optional JSON body fields: `algorithm_class`, `benchmark` to override auto-detection)
 - Load any previous result set to view equity curves, daily performance, benchmark/SMA overlays, statistics, orders, and logs
 - Toggle overlays (Benchmark, SMA) and switch time ranges (1m, 3m, 1y, All)
 
-## Running a Backtest (CLI)
+## LEAN configuration (not tied to one algorithm)
 
-You can also run backtests directly from the command line:
+- **[lean.engine.json](lean.engine.json)** — engine settings only (data folder, handlers, etc.). No strategy is hardcoded here.
+- **[lean_config.py](lean_config.py)** — shared logic: merge engine config + pick algorithm class, path, benchmark, and results folder per run.
+- **Optional `config.local.json`** (gitignored) — merge extra keys on top of `lean.engine.json` for your machine (still never used for `algorithm-type-name` / `algorithm-location` from disk alone).
+- **Legacy `config.json`** — if present and `lean.engine.json` is missing, it is loaded and algorithm keys are stripped when building a run config.
+
+For each backtest, LEAN needs a **full** JSON mounted at **`/Lean/Launcher/bin/Debug/config.json`**. The Flask app and the CLI script generate that merge automatically.
+
+## Running a Backtest (CLI)
 
 ```bash
 docker run --rm \
@@ -194,7 +205,9 @@ docker run --rm \
   lean-nltk
 ```
 
-Results are written to `Results/<strategy>/`.
+If you **manually** `docker run`, you must mount a JSON that already contains `algorithm-type-name`, `algorithm-location`, and `benchmark`, or LEAN will load the default C# sample and exit quickly with code 0.
+
+Results go under `Results/<folder>/<stem>/` (e.g. `Results/quantconnect_learning/lesson10/`).
 
 ## Static Analysis Dashboard
 

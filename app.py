@@ -14,13 +14,14 @@ import pandas as pd
 import yfinance as yf
 from flask import Flask, jsonify, render_template, request
 
+from lean_config import build_run_config, detect_class_name
+
 app = Flask(__name__)
 
 BASE_DIR = Path(__file__).resolve().parent
 ALGORITHMS_DIR = BASE_DIR / "Algorithms"
 RESULTS_DIR = BASE_DIR / "Results"
 DATA_DIR = BASE_DIR / "Data"
-CONFIG_PATH = BASE_DIR / "config.json"
 
 # In-memory store for running backtest jobs
 backtest_jobs = {}
@@ -40,11 +41,25 @@ def index():
 # API — algorithm discovery
 # ---------------------------------------------------------------------------
 
+def _is_lean_backtest_file(py_path: Path) -> bool:
+    """Skip research-only scripts (first line: # lean-exclude: research)."""
+    try:
+        with open(py_path) as f:
+            first = f.readline().strip().lower()
+        if first.startswith("#") and "lean-exclude:" in first and "research" in first:
+            return False
+    except OSError:
+        pass
+    return True
+
+
 @app.route("/api/algorithms")
 def list_algorithms():
-    """Return every .py file under Algorithms/, grouped by subfolder."""
+    """Return every .py file under Algorithms/ that can run as a LEAN backtest."""
     algos = []
     for py_file in sorted(ALGORITHMS_DIR.rglob("*.py")):
+        if not _is_lean_backtest_file(py_file):
+            continue
         rel = py_file.relative_to(ALGORITHMS_DIR)
         algos.append({
             "path": str(rel),
@@ -151,27 +166,39 @@ def get_results(strategy):
 def run_backtest():
     """Kick off a LEAN backtest in Docker for the given algorithm."""
     body = request.json or {}
-    algo_path = body.get("algorithm")  # e.g. "space_strategy/rklb_swing.py"
+    algo_path = body.get("algorithm")  # e.g. "space_swing_strategy/rklb_swing.py"
     if not algo_path:
         return jsonify({"error": "Missing 'algorithm' field"}), 400
 
     full_algo = ALGORITHMS_DIR / algo_path
     if not full_algo.exists():
         return jsonify({"error": f"Algorithm not found: {algo_path}"}), 404
+    if not _is_lean_backtest_file(full_algo):
+        return jsonify({
+            "error": "This file is a local research script (lean-exclude: research). "
+            "Run it with: python Algorithms/" + algo_path,
+        }), 400
 
     job_id = str(uuid.uuid4())[:8]
 
-    # Determine output folder name and class name
     algo_dir = str(Path(algo_path).parent)
     algo_stem = Path(algo_path).stem
-    class_name = _detect_class_name(full_algo)
     if algo_dir and algo_dir != ".":
         result_folder = f"{algo_dir}/{algo_stem}"
     else:
         result_folder = algo_stem
 
     # Build a config for this run
-    run_config = _build_config(algo_path, class_name, result_folder)
+    class_name = body.get("algorithm_class") or detect_class_name(full_algo)
+    try:
+        run_config = build_run_config(
+            algo_path,
+            class_name=class_name,
+            result_folder=result_folder,
+            benchmark=body.get("benchmark"),
+        )
+    except FileNotFoundError as e:
+        return jsonify({"error": str(e)}), 404
 
     with _jobs_lock:
         backtest_jobs[job_id] = {
@@ -412,20 +439,6 @@ def _ensure_ticker_data(py_path):
         log_lines.append(f"  {'OK' if ok else 'FAIL'}: {msg}")
 
     return log_lines
-
-
-def _build_config(algo_path, class_name, result_folder):
-    """Build a LEAN config dict for the given algorithm."""
-    base = {}
-    if CONFIG_PATH.exists():
-        with open(CONFIG_PATH) as f:
-            base = json.load(f)
-
-    base["algorithm-type-name"] = class_name
-    base["algorithm-language"] = "Python"
-    base["algorithm-location"] = f"/Lean/Algorithm/{algo_path}"
-    base["results-destination-folder"] = f"/Results/{result_folder}"
-    return base
 
 
 def _run_docker_backtest(job_id, config, result_folder):

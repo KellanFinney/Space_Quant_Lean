@@ -1,7 +1,9 @@
 # Backtest results and data
 Results/
 Data/
+Research/output/
 config.json
+config.local.json
 
 # Python
 venv/
