@@ -130,11 +130,15 @@ Space_Quant_Lean/
 ├── Learning/
 │   └── PythonA_Z/
 │       └── ElonMuskPreprocessingTweats.py  # Musk tweet NLP preprocessing
+├── Research/
+│   └── qlib/
+│       └── README.md              # Editable [Qlib](https://github.com/microsoft/qlib) install + data notes
 ├── Dockerfile                     # LEAN engine + NLTK container
 ├── lean.engine.json               # LEAN engine settings (no strategy hardcoded)
 ├── lean_config.py                 # Merge engine + per-run algorithm / benchmark
 ├── scripts/run_lean_backtest.py   # CLI: Docker backtest any algorithm
 ├── requirements.txt               # Python dependencies
+├── requirements-qlib.txt          # Optional extras when using editable Qlib (not PyPI pyqlib)
 └── .gitignore
 ```
 
@@ -169,6 +173,32 @@ Space_Quant_Lean/
    docker build -t lean-nltk .
    ```
    The Flask dashboard runs this image as `lean-nltk`. If you use another tag, change `app.py` or pass the same tag on the CLI.
+
+## Qlib (optional — editable install)
+
+[Qlib](https://github.com/microsoft/qlib) is kept **out of this repository**. Use an **editable install** from a clone next to (or anywhere on disk) so you get upstream examples and upgrades with `git pull`, without vendoring the whole tree here.
+
+1. Clone Microsoft’s repo once (sibling to this project is convenient):
+   ```bash
+   cd ..
+   git clone https://github.com/microsoft/qlib.git
+   cd Space_Quant_Lean
+   ```
+
+2. Activate your venv (Python **3.8–3.12** matches Qlib’s supported range; avoid bleeding-edge 3.14 for ML stacks), then install Qlib in editable mode and optional workflow deps:
+   ```bash
+   source venv/bin/activate
+   pip install -e ../qlib
+   pip install -r requirements-qlib.txt
+   ```
+
+3. Do **not** also `pip install pyqlib` from PyPI unless you intend to override — the editable install already provides the `qlib` package.
+
+4. Prepare Qlib’s **bin data** under `~/.qlib/qlib_data/` (region CN/US, etc.) per [Qlib’s data docs](https://qlib.readthedocs.io/). Pointers and Mac notes: [Research/qlib/README.md](Research/qlib/README.md).
+
+**Using Qlib after install:** see [Research/qlib/README.md](Research/qlib/README.md) (smoke test, run upstream `examples/`, export predictions to `Data/custom/qlib_signals/`, then LEAN).
+
+**LEAN bridge:** Qlib research → CSV under `Data/custom/` → LEAN `PythonData` (helpers: `Research/qlib/smoke_test.py`, `Research/qlib/export_signals_to_lean.py`).
 
 ## Running the Dashboard
 

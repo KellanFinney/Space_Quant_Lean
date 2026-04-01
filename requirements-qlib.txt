@@ -1,0 +1,10 @@
+# Optional: use WITH an editable Qlib install — not instead of it.
+#
+#   git clone https://github.com/microsoft/qlib.git ../qlib
+#   pip install -e ../qlib
+#   pip install -r requirements-qlib.txt
+#
+# Do not pip install pyqlib from PyPI if you already use pip install -e ../qlib.
+
+lightgbm>=4.0.0
+pyyaml>=6.0

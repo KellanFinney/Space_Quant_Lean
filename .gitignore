@@ -25,5 +25,8 @@ Thumbs.db
 *.swp
 *.swo
 
+# Qlib: keep clone outside this repo (../qlib); do not commit nested repo
+qlib/
+
 # Misc
 *.log
